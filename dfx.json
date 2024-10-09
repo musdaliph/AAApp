@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "aap_backend": {
+      "main": "src/aap_backend/main.mo",
+      "type": "motoko"
+    },
+    "aap_frontend": {
+      "dependencies": [
+        "aap_backend"
+      ],
+      "source": [
+        "src/aap_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "aap_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
