@@ -1,8 +1,7 @@
-import Debug "mo:base/Debug";
+import Chainlink "mo:chainlink/Chainlink";
 
 actor PredictionMarket {
 
-    // Struktur data untuk menyimpan event prediksi
     type PredictionEvent = {
         id: Nat;
         creator: Principal;
@@ -20,7 +19,7 @@ actor PredictionMarket {
     var events: [PredictionEvent] = [];
     var nextEventId: Nat = 0;
 
-    // Membuat event prediksi baru
+    // Fungsi untuk membuat event prediksi baru
     public func createPredictionEvent(description: Text, deadline: Time) : async Nat {
         let event = {
             id = nextEventId;
@@ -46,11 +45,9 @@ actor PredictionMarket {
         switch (eventOpt) {
             case (null) { return "Event tidak ditemukan"; };
             case (?event) {
-                // Cek apakah event sudah selesai
                 if (event.resolved) {
                     return "Event sudah selesai";
                 };
-                // Tambahkan taruhan
                 if (betOnYes) {
                     event.betsForYes += 1;
                     event.bettorsYes := event.bettorsYes # [Principal.self];
@@ -64,8 +61,8 @@ actor PredictionMarket {
         };
     };
 
-    // Fungsi untuk menerima hasil dari Chainlink (Oracle)
-    public func resolvePrediction(eventId: Nat, outcome: Bool) : async Text {
+    // Fungsi untuk menerima hasil dari Chainlink
+    public func resolvePredictionWithChainlink(eventId: Nat, chainlinkRequestId: Text) : async Text {
         let eventOpt = events[eventId];
         switch (eventOpt) {
             case (null) { return "Event tidak ditemukan"; };
@@ -73,11 +70,16 @@ actor PredictionMarket {
                 if (event.resolved) {
                     return "Event sudah diselesaikan";
                 };
-                // Set outcome berdasarkan hasil dari Chainlink
-                event.outcome := outcome;
+                // Ambil data dari oracle Chainlink
+                let oracleData = await Chainlink.requestData(chainlinkRequestId);
+                // Menetapkan outcome berdasarkan data dari Chainlink
+                if (oracleData == "Yes") {
+                    event.outcome := true;
+                } else {
+                    event.outcome := false;
+                };
                 event.resolved := true;
-                // Distribusi reward bisa dilakukan setelah ini
-                return "Event diselesaikan dengan hasil: " # (if outcome then "Yes" else "No");
+                return "Event diselesaikan dengan hasil: " # oracleData;
             };
         };
     };
@@ -91,9 +93,10 @@ actor PredictionMarket {
                 if (!event.resolved) {
                     return "Event belum diselesaikan";
                 };
-                // Logika distribusi reward di sini
-                // Misalnya bagi totalBet antara bettorsYes atau bettorsNo tergantung pada outcome
-                return "Reward didistribusikan";
+                // Logika distribusi reward
+                let winningBettors = if (event.outcome) then event.bettorsYes else event.bettorsNo;
+                // Simulasikan distribusi reward (logika detail bisa dikembangkan lebih lanjut)
+                return "Reward didistribusikan ke " # Nat.toText(Seq.length(winningBettors)) # " bettors.";
             };
         };
     };
